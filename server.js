@@ -7,8 +7,20 @@ const Discord = require('discord.js');
 const babyparse = require("babyparse");
 
 const fs = require('fs');
+const path = require('path');
 const request = require('request');
+const express = require('express');
 
+var app = express();
+const time = new Date().toString();
+app.get('/', function(req,res){
+  res.render('index.hbs', {time: time});
+});
+
+var port = process.env.PORT || 3000;
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'hbs');
+app.listen(port);
 
 // create an instance of a Discord Client, and call it bot
 const bot = new Discord.Client();
@@ -25,50 +37,49 @@ bot.on('message', message => {
   if (message.content.toUpperCase().startsWith('!XCOIN')) {
     var name = message.content.split(' ')[1];    
     name = name || message.author.username; 
-    const entry = lookup(name);
-    if(entry){
-      message.channel.sendMessage(formatMessage(entry));
-    }    
-    else{
-      message.channel.sendMessage(name+" not found. Please try !xcoin <partial_in_game_name_here>");
+    const exchangeEntry = lookup(STORE.exchange, name);
+    const bazaarEntry = lookup(STORE.bazaar, name);
+    if(exchangeEntry){
+      const msg = formatMessage(exchangeEntry);    
+      message.channel.sendMessage(msg+" [Exchange]");       
+    }
+    if(bazaarEntry){
+      const msg = formatMessage(bazaarEntry);    
+      message.channel.sendMessage(msg+" [Bazaar]");
+    }
+    if(!bazaarEntry && !exchangeEntry){
+      message.channel.sendMessage(name+" not found");
     }
   }
 });
 
-var STORE = [];
-request("http://docs.google.com/spreadsheets/d/1RbgPC1KMmzX6Q-IrZaZQb_sygI_UoWg0xR1YclspKZQ/export?format=csv", function(error, response, body){
-  var firstLine = body.indexOf('\n');
-  var cleanData = body.substr(firstLine+1);
-  var data = babyparse.parse(cleanData, {header: true, dynamicTyping:true, skipEmptyLines:true});  
-  STORE = data.data;
+var STORE = {exchange: [], bazaar:[]};
+request("http://docs.google.com/spreadsheets/d/1Yez-OB0OCzORqRuvwbW8Jxjn8TNL4cHkScXY9ZrOTXs/export?format=csv", function(error, response, body){  
+  var data = babyparse.parse(body, {header: true, dynamicTyping:true, skipEmptyLines:true});
+  STORE.bazaar = data.data;  
 });
+
+
+request("https://docs.google.com/spreadsheets/d/1pkiwX_b5qcD5kgd3StgjapcJaHy0JuMjEzkghZetZbA/export?format=csv", function(error, response, body){  
+  var data = babyparse.parse(body, {header: true, dynamicTyping:true, skipEmptyLines:true});
+  STORE.exchange = data.data;  
+});
+
 
 function formatMessage(entry){
   const b = (s) => "**"+s+"**";
   const username =  entry["Username"]
-  const lastRank =  entry["Last Rank"]
-  const promotion =  entry["Promotion"]
-  const demotion =  entry["Demotion"]
-  const weeksPresent =  entry["Weeks Present"]
-  const monthlyTotal =  entry["Monthly Total"]
-  const weeklyAverage =  entry["Weekly Average"]
-  const nonImmuneMonthlyRank =  entry["Non-Immune Monthly Rank"]
-  const weeklyBalance =  entry["Weekly Balance"]
-  const sales =  entry["Sales"]
-  const purchases =  entry["Purchases"]
-  const raffleEntries =  entry["Raffle Entries"]
-  const goldDonations =  entry["Gold Donations"]
-  const itemDonations =  entry["Item Donations"]
-  
-  return "xCoin for "+b(username)+" : Week "+b(weeklyAverage)+", Month "+b(monthlyTotal);
+  const month =  entry["Monthly Total"]
+  const week =  entry["Weekly Average"]
+  return "xCoin for "+b(username)+" : Week Average "+b(week)+", Month Total "+b(month);
   
 }
 
-function lookup(name){
+function lookup(collection, name){
   var upperName = name.toUpperCase();
-  for(var i=0;i<STORE.length;i++){
-    var entry = STORE[i];    
-    if(entry.Username.toUpperCase().indexOf(upperName) > 0){
+  for(var i=0;i<collection.length;i++){
+    var entry = collection[i];    
+    if(entry.Username.toUpperCase().indexOf(upperName) >= 0){
       return entry;
     }
   }
