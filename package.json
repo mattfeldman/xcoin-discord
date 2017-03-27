@@ -14,7 +14,9 @@
     "babyparse": "^0.4.6",
     "request": "^2.81.0",
     "express": "^4.0.0",
-    "hbs": "~3.1.0"
+    "hbs": "~3.1.0",
+    "moment": "^2.18.1",
+    "moment-precise-range-plugin": "^1.2.1"
 	},
 	"engines": {
 		"node": "6.9.x"
