@@ -20,7 +20,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'hbs');
 app.listen(port);
 
-const discordAdmins = ["114877197512081410"];
+const discordAdmins = ["114877197512081410", "79000698812891136"];
 const decaUserString = "<@114877197512081410>";
 const startTime = Date.now();
 var refreshTime = null;
